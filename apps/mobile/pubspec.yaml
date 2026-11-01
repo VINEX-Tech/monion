@@ -1,0 +1,16 @@
+name: monion_mobile
+description: Android-first Monion driver app (prototype barcode scanner)
+publish_to: none
+version: 0.1.0+1
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+dependencies:
+  flutter: { sdk: flutter }
+  mobile_scanner: ^7.1.4
+dev_dependencies:
+  flutter_test: { sdk: flutter }
+  flutter_lints: ^5.0.0
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
