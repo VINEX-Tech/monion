@@ -124,3 +124,7 @@ CI (`.github/workflows/ci.yml`) runs all of these plus a gitleaks scan.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Author
+
+Designed and built by Abdel Rahman Mohamad EL-Sayed ([AbdelRahman-Madboly](https://github.com/AbdelRahman-Madboly) on GitHub) as a VINEX product.
