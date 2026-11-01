@@ -14,7 +14,7 @@
     "prisma:check": "prisma migrate diff --from-url \"$DATABASE_URL\" --to-schema-datamodel prisma/schema.prisma --exit-code"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.5",
+    "@nestjs/common": "^12.3.2",
     "@nestjs/core": "^11.1.5",
     "@nestjs/platform-express": "^11.1.5",
     "@prisma/client": "^6.12.0",
