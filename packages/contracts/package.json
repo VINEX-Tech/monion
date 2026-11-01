@@ -1,0 +1,10 @@
+{
+  "name": "@monion/contracts",
+  "private": true,
+  "scripts": {
+    "check": "swagger-cli validate openapi.yaml"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-cli": "^4.0.4"
+  }
+}

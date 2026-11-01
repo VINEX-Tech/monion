@@ -1,0 +1,121 @@
+openapi: 3.0.3
+info:
+  title: Monion API
+  version: 0.1.0
+  description: >
+    Contract for the endpoints the Monion API implements today. Authentication
+    is not built yet, so no security scheme is declared. Planned endpoints
+    (device enrollment, GPS batches, trips) are added here only when they are
+    implemented and tested.
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:3000/v1
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+  /attendance/events:
+    post:
+      operationId: createAttendanceEvent
+      description: >
+        Records one immutable IN or OUT event for a student on an active trip.
+        The only legal sequence per trip and student is IN, OUT, IN, OUT.
+        Replaying the same Idempotency-Key with the same body returns the
+        original event with status 200. Source MANUAL requires manualReason.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AttendanceEventInput' }
+      responses:
+        '201':
+          description: Event created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AttendanceEvent' }
+        '200':
+          description: Existing event returned for a replayed Idempotency-Key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AttendanceEvent' }
+        '400':
+          description: Missing or invalid Idempotency-Key, or a body that fails validation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: Trip is not active, or the student is not an active roster entry
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: >
+            Invalid transition (duplicate consecutive direction, or OUT before IN),
+            Idempotency-Key reused with a different body, or a concurrent update
+            that should be retried
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Client-generated UUID, stable across retries of the same event.
+      schema: { type: string, format: uuid }
+  schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status, service]
+      properties:
+        status: { type: string, enum: [ok] }
+        service: { type: string }
+    AttendanceEventInput:
+      type: object
+      additionalProperties: false
+      required: [tripId, studentId, direction, occurredAt, source]
+      properties:
+        tripId: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        direction: { type: string, enum: [IN, OUT] }
+        occurredAt: { type: string, format: date-time }
+        source: { type: string, enum: [UNIVERSITY_QR, NATIONAL_ID_BARCODE, OCR, MANUAL] }
+        manualReason: { type: string, minLength: 3, maxLength: 500, description: Required when source is MANUAL. }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+    AttendanceEvent:
+      type: object
+      additionalProperties: false
+      required: [id, idempotencyKey, tripId, studentId, direction, occurredAt, source, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        idempotencyKey: { type: string, format: uuid }
+        tripId: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        direction: { type: string, enum: [IN, OUT] }
+        occurredAt: { type: string, format: date-time }
+        source: { type: string, enum: [UNIVERSITY_QR, NATIONAL_ID_BARCODE, OCR, MANUAL] }
+        manualReason: { type: string }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        createdAt: { type: string, format: date-time }
+    Error:
+      type: object
+      required: [statusCode, message]
+      properties:
+        statusCode: { type: integer }
+        message:
+          oneOf:
+            - type: string
+            - type: array
+              items: { type: string }
+        error: { type: string }
