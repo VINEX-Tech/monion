@@ -13,6 +13,7 @@ build/
 .vscode/
 .DS_Store
 apps/mobile/android/local.properties
+apps/mobile/android/.kotlin/
 apps/mobile/android/key.properties
 *.jks
 *.keystore
