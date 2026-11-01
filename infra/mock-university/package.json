@@ -1,0 +1,10 @@
+{
+  "name": "@monion/mock-university",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "build": "node --check server.mjs && node --check roster.mjs",
+    "test": "node --test"
+  }
+}
