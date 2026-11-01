@@ -1,0 +1,342 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DISPATCHER
+  DRIVER
+  AUDITOR
+}
+enum DeviceStatus {
+  PENDING
+  APPROVED
+  LIMITED
+  REJECTED
+  REVOKED
+}
+enum CameraMode {
+  LOCAL_RECORDING
+  SD_ONLY
+}
+enum TripStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+enum AttendanceDirection {
+  IN
+  OUT
+}
+enum AlertKind {
+  OVERDUE
+  ROUTE_DEVIATION
+  STALE_GPS
+  UNEXPECTED_STOP
+  CAMERA_FAILURE
+  RECORDING_FAILURE
+  LOW_STORAGE
+  CLAIM_CONFLICT
+  UNRESOLVED_PASSENGER
+  SOS
+}
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+enum SyncKind {
+  FULL
+  INCREMENTAL
+  CSV
+}
+enum SyncStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model User {
+  id String @id @default(uuid())
+  username String @unique
+  email String @unique
+  passwordHash String
+  role Role
+  emailVerifiedAt DateTime?
+  driver Driver?
+  devices Device[]
+  refreshTokens RefreshToken[]
+  auditRecords AuditRecord[] @relation("ActorAudits")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Driver {
+  id String @id @default(uuid())
+  userId String @unique
+  user User @relation(fields: [userId], references: [id])
+  referenceSelfieKey String?
+  assignments DriverBusAssignment[]
+  trips Trip[]
+}
+
+model Device {
+  id String @id @default(uuid())
+  installationId String @unique
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  status DeviceStatus @default(PENDING)
+  manufacturer String
+  model String
+  androidVersion String
+  securityPatch String?
+  appVersion String
+  cpuAbi String
+  capabilityReport Json
+  approvedAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  trips Trip[]
+}
+
+model RefreshToken {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  tokenHash String @unique
+  familyId String
+  expiresAt DateTime
+  revokedAt DateTime?
+  replacedById String?
+  createdAt DateTime @default(now())
+}
+
+model EmailOtp {
+  id String @id @default(uuid())
+  email String
+  codeHash String
+  expiresAt DateTime
+  consumedAt DateTime?
+  attempts Int @default(0)
+  createdAt DateTime @default(now())
+  @@index([email, expiresAt])
+}
+
+model Bus {
+  id String @id @default(uuid())
+  fleetNumber String @unique
+  plateNumber String @unique
+  cameraMode CameraMode @default(SD_ONLY)
+  cameraProfile CameraProfile?
+  assignments DriverBusAssignment[]
+  schedules Schedule[]
+  trips Trip[]
+}
+
+model CameraProfile {
+  id String @id @default(uuid())
+  busId String @unique
+  bus Bus @relation(fields: [busId], references: [id])
+  host String
+  port Int @default(554)
+  encryptedCredentials Bytes
+  streamPath String
+  firmware String?
+  cameras Camera[]
+}
+
+model Camera {
+  id String @id @default(uuid())
+  profileId String
+  profile CameraProfile @relation(fields: [profileId], references: [id])
+  name String
+  channel Int
+  enabled Boolean @default(true)
+  recordings Recording[]
+}
+
+model DriverBusAssignment {
+  id String @id @default(uuid())
+  driverId String
+  driver Driver @relation(fields: [driverId], references: [id])
+  busId String
+  bus Bus @relation(fields: [busId], references: [id])
+  validFrom DateTime
+  validUntil DateTime?
+  @@index([driverId, validFrom])
+}
+
+model Route {
+  id String @id @default(uuid())
+  name String
+  expectedDurationMinutes Int
+  deviationThresholdMeters Int @default(300)
+  stops Stop[]
+  schedules Schedule[]
+  trips Trip[]
+}
+
+model Stop {
+  id String @id @default(uuid())
+  routeId String
+  route Route @relation(fields: [routeId], references: [id])
+  name String
+  latitude Decimal @db.Decimal(9, 6)
+  longitude Decimal @db.Decimal(9, 6)
+  sequence Int
+  @@unique([routeId, sequence])
+}
+
+model Schedule {
+  id String @id @default(uuid())
+  routeId String
+  route Route @relation(fields: [routeId], references: [id])
+  busId String
+  bus Bus @relation(fields: [busId], references: [id])
+  departureTime DateTime
+  enabled Boolean @default(true)
+  trips Trip[]
+}
+
+model Trip {
+  id String @id @default(uuid())
+  clientId String @unique
+  scheduleId String?
+  schedule Schedule? @relation(fields: [scheduleId], references: [id])
+  routeId String
+  route Route @relation(fields: [routeId], references: [id])
+  busId String
+  bus Bus @relation(fields: [busId], references: [id])
+  driverId String
+  driver Driver @relation(fields: [driverId], references: [id])
+  deviceId String
+  device Device @relation(fields: [deviceId], references: [id])
+  status TripStatus @default(PLANNED)
+  driverSelfieKey String?
+  startedAt DateTime?
+  endedAt DateTime?
+  attendance AttendanceEvent[]
+  gpsPoints GpsPoint[]
+  recordings Recording[]
+  alerts Alert[]
+  claims BusClaim[]
+  createdAt DateTime @default(now())
+}
+
+model Student {
+  id String @id @default(uuid())
+  universityId String @unique
+  displayName String
+  active Boolean @default(true)
+  identifiers ProtectedIdentifier[]
+  attendance AttendanceEvent[]
+  sourceUpdatedAt DateTime?
+}
+
+model ProtectedIdentifier {
+  id String @id @default(uuid())
+  studentId String
+  student Student @relation(fields: [studentId], references: [id])
+  kind String
+  lookupHash String @unique
+  ciphertext Bytes
+  lastFour String?
+  createdAt DateTime @default(now())
+}
+
+model AttendanceEvent {
+  id String @id @default(uuid())
+  idempotencyKey String @unique
+  tripId String
+  trip Trip @relation(fields: [tripId], references: [id])
+  studentId String
+  student Student @relation(fields: [studentId], references: [id])
+  direction AttendanceDirection
+  occurredAt DateTime
+  source String
+  manualReason String?
+  confidence Float?
+  createdAt DateTime @default(now())
+  @@index([tripId, studentId, occurredAt])
+}
+
+model GpsPoint {
+  id BigInt @id @default(autoincrement())
+  idempotencyKey String @unique
+  tripId String
+  trip Trip @relation(fields: [tripId], references: [id])
+  latitude Decimal @db.Decimal(9, 6)
+  longitude Decimal @db.Decimal(9, 6)
+  accuracyMeters Float
+  speedMps Float?
+  occurredAt DateTime
+  @@index([tripId, occurredAt])
+}
+
+model Recording {
+  id String @id @default(uuid())
+  idempotencyKey String @unique
+  tripId String
+  trip Trip @relation(fields: [tripId], references: [id])
+  cameraId String?
+  camera Camera? @relation(fields: [cameraId], references: [id])
+  localSegmentId String
+  startedAt DateTime
+  endedAt DateTime?
+  bytes BigInt?
+  checksum String?
+  healthy Boolean @default(true)
+}
+
+model Alert {
+  id String @id @default(uuid())
+  idempotencyKey String @unique
+  tripId String
+  trip Trip @relation(fields: [tripId], references: [id])
+  kind AlertKind
+  status AlertStatus @default(OPEN)
+  payload Json
+  occurredAt DateTime
+  resolvedAt DateTime?
+}
+
+model BusClaim {
+  id String @id @default(uuid())
+  tripId String
+  trip Trip @relation(fields: [tripId], references: [id])
+  nonce String @unique
+  signedTokenHash String
+  expiresAt DateTime
+  releasedAt DateTime?
+}
+
+model RosterSync {
+  id String @id @default(uuid())
+  kind SyncKind
+  status SyncStatus
+  pageToken String?
+  imported Int @default(0)
+  rejected Int @default(0)
+  errorSummary String?
+  startedAt DateTime @default(now())
+  completedAt DateTime?
+}
+
+model AuditRecord {
+  id BigInt @id @default(autoincrement())
+  actorId String?
+  actor User? @relation("ActorAudits", fields: [actorId], references: [id])
+  action String
+  entityType String
+  entityId String?
+  metadata Json
+  ipHash String?
+  createdAt DateTime @default(now())
+  @@index([entityType, entityId, createdAt])
+}
