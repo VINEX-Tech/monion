@@ -1,5 +1,7 @@
 # Monion
 
+<img src="docs/readme-icon.png" width="96" align="right" alt="Monion icon">
+
 [![CI](https://github.com/VINEX-Tech/monion/actions/workflows/ci.yml/badge.svg)](https://github.com/VINEX-Tech/monion/actions/workflows/ci.yml)
 
 **Status: Prototype / MVP.** Not deployed. No users, no pilot, no field data.
