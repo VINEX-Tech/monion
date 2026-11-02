@@ -4,12 +4,19 @@
 
 [![CI](https://github.com/VINEX-Tech/monion/actions/workflows/ci.yml/badge.svg)](https://github.com/VINEX-Tech/monion/actions/workflows/ci.yml)
 
-**Status: Prototype / MVP.** Not deployed. No users, no pilot, no field data.
-
 Monion is a planned platform for university buses: drivers scan student cards
 at the door, the API keeps an immutable IN/OUT attendance record per trip, and
 an operations dashboard shows the fleet. This repository holds the first
 working slice of that plan and the data model for the rest.
+
+**Status: Prototype / MVP.** Not deployed. No users, no pilot, no field data.
+
+| Scanning at the bus door | Operations dashboard |
+|---|---|
+| ![Driver's phone scanning a student card at the bus door](docs/images/concept-bus-door.jpg) | ![Monion dashboard on a laptop](docs/images/concept-dashboard.jpg) |
+
+Concept images of the planned product, not screenshots or photos. The figures on the dashboard in
+the picture are made up for the image; the dashboard in this repository shows mock data only.
 
 ## Working now vs not built yet
 
